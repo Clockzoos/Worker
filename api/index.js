@@ -21,12 +21,26 @@ export default async function handler(request, response) {
       return response.status(400).json({ ok: false, message: "Cookie is missing." });
     }
 
-    const cookieHeader = `.ROBLOSECURITY=${cookie}`;
+    // Bersihkan cookie dari awalan .ROBLOSECURITY= kalau ada
+    let cleanCookie = cookie.trim();
+    if (cleanCookie.startsWith(".ROBLOSECURITY=")) {
+      cleanCookie = cleanCookie.replace(".ROBLOSECURITY=", "");
+    }
+
+    const cookieHeader = `.ROBLOSECURITY=${cleanCookie}`;
+
+    // Header tambahan agar request tidak dideteksi bot oleh Roblox
+    const robloxHeaders = {
+      "Cookie": cookieHeader,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Referer": "https://www.roblox.com/",
+      "Content-Type": "application/json"
+    };
 
     // Ambil X-CSRF-Token dari Roblox
     const csrfResp = await fetch("https://auth.roblox.com/v1/logout", {
       method: "POST",
-      headers: { "Cookie": cookieHeader },
+      headers: robloxHeaders,
     });
 
     let csrfToken = csrfResp.headers.get("x-csrf-token");
@@ -34,15 +48,21 @@ export default async function handler(request, response) {
     if (!csrfToken) {
       const tokenResp = await fetch("https://develop.roblox.com/v1/universes/create", {
         method: "POST",
-        headers: { "Cookie": cookieHeader },
+        headers: robloxHeaders,
       });
       csrfToken = tokenResp.headers.get("x-csrf-token");
     }
 
     if (!csrfToken) {
       response.setHeader("Access-Control-Allow-Origin", "*");
-      return response.status(401).json({ ok: false, message: "Failed to get CSRF Token. Cookie might be invalid." });
+      return response.status(401).json({ ok: false, message: "Failed to get CSRF Token. Cookie might be invalid or blocked." });
     }
+
+    // Masukkan token ke header khusus request utama
+    const actionHeaders = {
+      ...robloxHeaders,
+      "X-CSRF-TOKEN": csrfToken
+    };
 
     let robloxResp;
     let responseData;
@@ -52,11 +72,7 @@ export default async function handler(request, response) {
     if (action === "createUniverse") {
       robloxResp = await fetch("https://develop.roblox.com/v1/universes/create", {
         method: "POST",
-        headers: {
-          "Cookie": cookieHeader,
-          "X-CSRF-TOKEN": csrfToken,
-          "Content-Type": "application/json",
-        },
+        headers: actionHeaders,
         body: JSON.stringify({
           templatePlaceId: templateId || 95206881,
         }),
@@ -80,11 +96,7 @@ export default async function handler(request, response) {
 
       robloxResp = await fetch(`https://develop.roblox.com/v1/universes/${universeId}/places`, {
         method: "POST",
-        headers: {
-          "Cookie": cookieHeader,
-          "X-CSRF-TOKEN": csrfToken,
-          "Content-Type": "application/json",
-        },
+        headers: actionHeaders,
         body: JSON.stringify({
           templateId: templateId || 95206881,
           name: "Created Place",
