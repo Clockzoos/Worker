@@ -105,8 +105,8 @@
         .badge-private { background: var(--surface-hover); color: var(--color-text-muted); border: 1px solid var(--color-border); }
 
         .detail-box { background: var(--surface); border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; margin-top: 20px; padding: 32px; }
-        .account-reveal-box { background: var(--bg-secondary); border: 1px dashed var(--color-primary); padding: 20px; border-radius: 12px; margin: 20px 0; }
-
+        .join-box { background: var(--bg-secondary); border: 1px solid var(--color-border); padding: 24px; border-radius: 14px; margin: 24px 0; }
+        
         .admin-panel { max-width: 900px; margin: 0 auto; }
         .admin-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; border-bottom: 1px solid var(--color-border); padding-bottom: 24px; }
         .tab-switcher { background: var(--bg-secondary); padding: 5px; border-radius: 12px; border: 1px solid var(--color-border); display: flex; gap: 4px; }
@@ -153,12 +153,12 @@
             <div class="nav-center">
                 <div class="search-wrapper">
                     <i class="search-icon">🔍</i>
-                    <input type="text" id="search" placeholder="Cari giveaway akun..." oninput="app.handleSearch(this.value)">
+                    <input type="text" id="search" placeholder="Search giveaways..." oninput="app.handleSearch(this.value)">
                 </div>
             </div>
             <div class="nav-right">
                 <div id="auth-section">
-                    <button class="btn btn-secondary btn-sm" onclick="app.toggleLoginModal()">Login Admin</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.toggleLoginModal()">Admin Login</button>
                 </div>
                 <div id="user-section" style="display:none">
                     <button class="btn btn-primary btn-sm" onclick="app.navigate('admin')">Admin Panel</button>
@@ -177,14 +177,27 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Admin Email</label>
-                    <input type="email" id="admin-email" class="input-field" placeholder="Masukkan email admin...">
+                    <input type="email" id="admin-email" class="input-field" placeholder="Enter admin email...">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
-                    <input type="password" id="admin-pass" class="input-field" placeholder="Masukkan password..." onkeypress="if(event.key==='Enter') app.login()">
+                    <input type="password" id="admin-pass" class="input-field" placeholder="Enter password..." onkeypress="if(event.key==='Enter') app.login()">
                 </div>
                 <div id="login-error" style="color:var(--color-danger);font-size:13px;margin:10px 0;display:none"></div>
                 <button class="btn" style="width:100%;justify-content:center;" onclick="app.login()">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARTICIPANTS LIST MODAL (FOR ADMIN) -->
+    <div id="participants-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this) app.toggleParticipantsModal()">
+        <div class="modal" style="max-width:600px; max-height:80vh; overflow-y:auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="color:var(--color-primary)" id="modal-giveaway-title">Participants & Draw Winner</h3>
+                <button class="close-btn" onclick="app.toggleParticipantsModal()">×</button>
+            </div>
+            <div id="participants-list-content">
+                <!-- Loaded dynamically -->
             </div>
         </div>
     </div>
@@ -195,12 +208,12 @@
             <div class="content-wrapper">
                 <aside class="sidebar">
                     <div class="sidebar-links">
-                        <a href="#" class="sidebar-link active" onclick="event.preventDefault(); app.filterCategory('all', event)">🎁 Semua Event</a>
-                        <a href="#" class="sidebar-link" onclick="event.preventDefault(); app.filterCategory('active', event)">🔥 Sedang Berjalan</a>
-                        <a href="#" class="sidebar-link" onclick="event.preventDefault(); app.filterCategory('ended', event)">🏆 Selesai / Pemenang</a>
+                        <a href="#" class="sidebar-link active" onclick="event.preventDefault(); app.filterCategory('all', event)">🎁 All Giveaways</a>
+                        <a href="#" class="sidebar-link" onclick="event.preventDefault(); app.filterCategory('active', event)">🔥 Active Events</a>
+                        <a href="#" class="sidebar-link" onclick="event.preventDefault(); app.filterCategory('ended', event)">🏆 Ended / Winners</a>
                         <select id="sort-select" class="sidebar-sort" onchange="app.setSort(this.value)">
-                            <option value="created">Terbaru</option>
-                            <option value="az">Judul A → Z</option>
+                            <option value="created">Newest</option>
+                            <option value="az">Title A → Z</option>
                         </select>
                         <a href="#" class="sidebar-link" id="private-filter" style="display:none" onclick="event.preventDefault(); app.filterCategory('private', event)">🔒 Private</a>
                     </div>
@@ -209,7 +222,7 @@
                     <div class="giveaway-grid" id="giveaway-list">
                         <div style="text-align:center;padding:60px 0;grid-column:1/-1">
                             <div class="spinner"></div>
-                            <p>Memuat data dari Firebase...</p>
+                            <p>Loading giveaways from Firebase...</p>
                         </div>
                     </div>
                 </main>
@@ -218,7 +231,7 @@
 
         <!-- DETAIL VIEW -->
         <div id="view-detail" class="view-section" style="display:none">
-            <button class="btn btn-secondary btn-sm" onclick="app.navigate('')" style="margin-bottom:20px;">← Kembali</button>
+            <button class="btn btn-secondary btn-sm" onclick="app.navigate('')" style="margin-bottom:20px;">← Back</button>
             <div id="giveaway-detail-content"></div>
         </div>
 
@@ -228,19 +241,19 @@
                 <div class="admin-header-flex">
                     <h2>Admin Giveaway Panel</h2>
                     <div class="tab-switcher">
-                        <button class="tab-btn active" onclick="app.switchAdminTab('list')">Daftar Event</button>
-                        <button class="tab-btn" onclick="app.switchAdminTab('create')">Buat Event Baru</button>
+                        <button class="tab-btn active" onclick="app.switchAdminTab('list')">Manage Events</button>
+                        <button class="tab-btn" onclick="app.switchAdminTab('create')">Create New</button>
                         <button class="tab-btn" onclick="app.logout()" style="color:var(--color-danger)">Logout</button>
                     </div>
                 </div>
 
                 <div id="admin-tab-editor" class="admin-tab" style="display:none">
                     <div class="editor-container">
-                        <h3 id="editor-heading" style="margin-bottom:20px;">Buat Giveaway Baru</h3>
+                        <h3 id="editor-heading" style="margin-bottom:20px;">Create New Giveaway</h3>
                         <input type="hidden" id="edit-id">
                         <div class="form-group">
-                            <label>Judul Giveaway</label>
-                            <input type="text" id="edit-title" class="input-field" placeholder="Contoh: Akun Roblox Robux 5000">
+                            <label>Giveaway Title</label>
+                            <input type="text" id="edit-title" class="input-field" placeholder="e.g. Roblox 5000 Robux Account">
                         </div>
                         <div class="form-group">
                             <label>Visibility</label>
@@ -250,36 +263,32 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Status Event</label>
+                            <label>Event Status</label>
                             <select id="edit-status" class="input-field">
-                                <option value="active">Active (Sedang Jalan)</option>
-                                <option value="ended">Ended (Selesai/Sudah Diundi)</option>
+                                <option value="active">Active (Running)</option>
+                                <option value="ended">Ended (Finished / Drawn)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Deskripsi & Syarat Ikut Undian</label>
-                            <textarea id="edit-desc" class="input-field" placeholder="Tulis syarat ikutan (Misal: Join Discord, Komen Nickname Roblox)..."></textarea>
+                            <label>Description & Requirements</label>
+                            <textarea id="edit-desc" class="input-field" placeholder="Write requirements (e.g. Join Discord, enter your Discord/Roblox name)..."></textarea>
                         </div>
                         <div class="form-group">
-                            <label>Detail Akun Roblox (Username & Password / Kode)</label>
-                            <input type="text" id="edit-account" class="input-field" placeholder="User: RobloxID | Pass: KataSandi123">
-                            <small style="color:var(--color-text-muted)">Hanya akan terbuka/muncul jika pemenang diumumkan atau event selesai.</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Nama Pemenang (Isi jika sudah diundi)</label>
-                            <input type="text" id="edit-winner" class="input-field" placeholder="Contoh: @BudiGamer_Rbx (Kosongkan jika belum)">
+                            <label>Roblox Account Details (Username & Password)</label>
+                            <input type="text" id="edit-account" class="input-field" placeholder="User: RobloxID | Pass: Password123">
+                            <small style="color:var(--color-text-muted)">Will only be revealed to the winner via Discord DM instructions.</small>
                         </div>
                         <div style="display:flex;gap:10px;justify-content:flex-end;">
-                            <button class="btn btn-secondary" onclick="app.switchAdminTab('list')">Batal</button>
-                            <button class="btn" onclick="app.saveGiveaway()">Simpan ke Firebase</button>
+                            <button class="btn btn-secondary" onclick="app.switchAdminTab('list')">Cancel</button>
+                            <button class="btn" onclick="app.saveGiveaway()">Save to Firebase</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="admin-tab-list" class="admin-tab" style="display:block">
                     <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
-                        <h3>Kelola Giveaway</h3>
-                        <span id="total-stats" style="color:var(--color-text-muted)">0 event</span>
+                        <h3>Manage Giveaways</h3>
+                        <span id="total-stats" style="color:var(--color-text-muted)">0 events</span>
                     </div>
                     <div id="admin-list"></div>
                 </div>
@@ -295,15 +304,15 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
-          apiKey: "AIzaSyCQRLQnKz3sP5IhmrESe978mNWrckCrBjE",
-          authDomain: "clock-backup.firebaseapp.com",
-          projectId: "clock-backup",
-          storageBucket: "clock-backup.firebasestorage.app",
-          messagingSenderId: "987850564905",
-          appId: "1:987850564905:web:e1a87690cac1015560c338"
+          apiKey: "MASUKKAN_API_KEY_BARU_DISINI",
+          authDomain: "MASUKKAN_AUTH_DOMAIN_BARU_DISINI",
+          projectId: "free-akun",
+          storageBucket: "MASUKKAN_STORAGE_BUCKET_BARU_DISINI",
+          messagingSenderId: "MASUKKAN_MESSAGING_SENDER_ID_BARU",
+          appId: "MASUKKAN_APP_ID_BARU"
         };
 
         const firebaseApp = initializeApp(firebaseConfig);
@@ -315,6 +324,8 @@
             currentFilter: 'all',
             currentSort: 'created',
             isAdmin: false,
+            currentParticipants: [],
+            activeGiveawayId: null,
 
             init() {
                 onAuthStateChanged(auth, (user) => {
@@ -338,26 +349,26 @@
 
                 if (!email || !pass) {
                     errEl.style.display = 'block';
-                    errEl.textContent = 'Email dan password wajib diisi!';
+                    errEl.textContent = 'Email and password are required!';
                     return;
                 }
 
                 try {
                     await signInWithEmailAndPassword(auth, email, pass);
                     this.toggleLoginModal();
-                    Toastify({ text: "Berhasil login sebagai Admin!", duration: 3000, style: { background: "#eab308", color: "#000" } }).showToast();
+                    Toastify({ text: "Successfully logged in as Admin!", duration: 3000, style: { background: "#eab308", color: "#000" } }).showToast();
                     this.navigate('admin');
                 } catch (e) {
                     console.error(e);
                     errEl.style.display = 'block';
-                    errEl.textContent = 'Login gagal! Email atau password salah.';
+                    errEl.textContent = 'Login failed! Incorrect email or password.';
                 }
             },
 
             async logout() {
                 await signOut(auth);
                 this.navigate('');
-                Toastify({ text: "Berhasil logout", duration: 2000 }).showToast();
+                Toastify({ text: "Successfully logged out", duration: 2000 }).showToast();
             },
 
             checkAuthUI() {
@@ -378,7 +389,7 @@
                     this.renderGiveaways();
                     this.renderAdminList();
                 } catch (e) {
-                    console.error("Gagal memuat dari Firebase:", e);
+                    console.error("Failed to load from Firebase:", e);
                 }
             },
 
@@ -392,7 +403,7 @@
                 });
 
                 if (filtered.length === 0) {
-                    listEl.innerHTML = `<div style="text-align:center;padding:50px;grid-column:1/-1;"><h2>Tidak ada event giveaway</h2></div>`;
+                    listEl.innerHTML = `<div style="text-align:center;padding:50px;grid-column:1/-1;"><h2>No giveaway events found</h2></div>`;
                     return;
                 }
 
@@ -402,9 +413,9 @@
                             <span class="giveaway-title">${g.title}</span>
                             <span class="badge badge-${g.status}">${g.status.toUpperCase()}</span>
                         </div>
-                        <p class="card-description">${g.description || 'Tidak ada deskripsi.'}</p>
+                        <p class="card-description">${g.description || 'No description provided.'}</p>
                         <div class="card-meta">
-                            <span>Pemenang: <strong>${g.winner ? g.winner : 'Belum diundi'}</strong></span>
+                            <span>Winner: <strong>${g.winner ? g.winner.name + ' (' + g.winner.code + ')' : 'Not drawn yet'}</strong></span>
                             <span class="badge badge-${g.visibility.toLowerCase()}">${g.visibility}</span>
                         </div>
                     </div>
@@ -413,17 +424,18 @@
 
             renderAdminList() {
                 const adminList = document.getElementById('admin-list');
-                document.getElementById('total-stats').textContent = `${this.giveaways.length} total event`;
+                document.getElementById('total-stats').textContent = `${this.giveaways.length} total events`;
                 
                 adminList.innerHTML = this.giveaways.map(g => `
                     <div class="admin-item">
                         <div>
                             <strong>${g.title}</strong>
-                            <div style="font-size:12px;color:var(--color-text-muted)">Status: ${g.status} | Pemenang: ${g.winner || 'Belum ada'}</div>
+                            <div style="font-size:12px;color:var(--color-text-muted)">Status: ${g.status} | Winner: ${g.winner ? g.winner.name : 'None'}</div>
                         </div>
-                        <div style="display:flex;gap:10px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-secondary btn-sm" onclick="app.openParticipants('${g.id}')">Participants & Draw</button>
                             <button class="btn btn-secondary btn-sm" onclick="app.editGiveaway('${g.id}')">Edit</button>
-                            <button class="btn btn-delete btn-sm" onclick="app.deleteGiveaway('${g.id}')">Hapus</button>
+                            <button class="btn btn-delete btn-sm" onclick="app.deleteGiveaway('${g.id}')">Delete</button>
                         </div>
                     </div>
                 `).join('');
@@ -439,7 +451,7 @@
                 location.hash = view ? `#${view}` : '#';
             },
 
-            router() {
+            async router() {
                 const hash = location.hash.slice(1);
                 document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
 
@@ -450,19 +462,34 @@
                     if (g) {
                         let winnerBox = g.winner 
                             ? `<div style="background:var(--color-primary-dim);border:1px solid var(--color-primary);padding:16px;border-radius:12px;margin-bottom:20px;">
-                                 🏆 <strong>Pemenang Terpilih:</strong> <span style="color:var(--color-primary);font-weight:bold;font-size:16px;">${g.winner}</span>
+                                 🏆 <strong>Selected Winner:</strong> <span style="color:var(--color-primary);font-weight:bold;font-size:16px;">${g.winner.name}</span> <br>
+                                 🎫 <strong>Winner Ticket Code:</strong> <code style="color:#fff;background:#000;padding:2px 6px;border-radius:4px;">${g.winner.code}</code>
                                </div>`
                             : `<div style="background:var(--surface-hover);padding:16px;border-radius:12px;margin-bottom:20px;color:var(--color-text-muted)">
-                                 ⏳ Undian masih berlangsung. Pemenang akan diumumkan segera!
+                                 ⏳ Raffle is ongoing. Enter your name below to get a unique ticket code!
                                </div>`;
 
+                        let joinSection = '';
+                        if (g.status === 'active' && !g.winner) {
+                            joinSection = `
+                                <div class="join-box">
+                                    <h3 style="color:var(--color-primary);margin-bottom:10px;">Enter Giveaway</h3>
+                                    <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:15px;">Type your Discord Username or Roblox Nickname to join and generate your unique ticket code automatically.</p>
+                                    <div class="form-group" style="margin-bottom:12px;">
+                                        <input type="text" id="participant-name" class="input-field" placeholder="e.g. PlayerName#1234 or RobloxUser">
+                                    </div>
+                                    <button class="btn" onclick="app.joinGiveaway('${g.id}')">Join & Get Code</button>
+                                </div>
+                            `;
+                        }
+
                         let accountReveal = (g.winner && g.accountDetails)
-                            ? `<div class="account-reveal-box">
-                                 <h4 style="color:var(--color-primary);margin-bottom:8px;">🎁 Detail Akun Roblox Pemenang:</h4>
-                                 <p style="font-family:monospace;font-size:14px;color:#fff;word-break:break-all;" id="acc-text">${g.accountDetails}</p>
-                                 <button class="btn btn-sm" style="margin-top:12px;" onclick="app.copyAccount()">Salin Akun</button>
+                            ? `<div style="background:var(--bg-secondary);border:1px dashed var(--color-success);padding:20px;border-radius:12px;margin:20px 0;">
+                                 <h4 style="color:var(--color-success);margin-bottom:8px;">🎉 Claim Your Roblox Account:</h4>
+                                 <p style="font-size:14px;color:#fff;margin-bottom:10px;">If you are the winner (<strong>${g.winner.name}</strong> with code <code>${g.winner.code}</code>), please send a direct message (DM) to our Discord Admin with your ticket code to claim the account details safely!</p>
+                                 <div style="background:#000;padding:12px;border-radius:8px;font-family:monospace;font-size:13px;color:var(--color-primary);">Discord Admin: @ClockAdmin</div>
                                </div>`
-                            : `<p style="color:var(--color-text-muted);font-size:13px;font-style:italic;">Detail akun roblox baru akan terbuka untuk pemenang atau setelah event ditutup oleh admin.</p>`;
+                            : '';
 
                         document.getElementById('giveaway-detail-content').innerHTML = `
                             <div class="detail-box">
@@ -472,6 +499,7 @@
                                 </div>
                                 <p style="color:var(--color-text-muted);margin-bottom:20px;white-space:pre-wrap;">${g.description || ''}</p>
                                 ${winnerBox}
+                                ${joinSection}
                                 ${accountReveal}
                             </div>
                         `;
@@ -485,11 +513,128 @@
                 }
             },
 
-            copyAccount() {
-                const accText = document.getElementById('acc-text').innerText;
-                navigator.clipboard.writeText(accText).then(() => {
-                    Toastify({ text: 'Detail akun disalin ke clipboard!', background: "#eab308", color: "#000" }).showToast();
-                });
+            async joinGiveaway(giveawayId) {
+                const nameInput = document.getElementById('participant-name');
+                const name = nameInput.value.trim();
+                if (!name) {
+                    Swal.fire('Error', 'Please enter your Discord or Roblox name!', 'error');
+                    return;
+                }
+
+                // Generate unique random ticket code (e.g. RBX-7392)
+                const randomCode = 'RBX-' + Math.floor(1000 + Math.random() * 9000);
+                const participantId = Date.now().toString();
+
+                try {
+                    const partRef = doc(db, "giveaways", giveawayId, "participants", participantId);
+                    await setDoc(partRef, {
+                        name: name,
+                        code: randomCode,
+                        joinedAt: new Date().toISOString()
+                    });
+
+                    Swal.fire({
+                        title: 'Successfully Joined!',
+                        html: `Your unique ticket code is: <br><h2 style="color:#eab308;margin:10px 0;">${randomCode}</h2>Save this code to claim your prize if you win!`,
+                        icon: 'success',
+                        confirmButtonText: 'Got it!'
+                    });
+                    nameInput.value = '';
+                } catch (e) {
+                    console.error(e);
+                    Toastify({ text: "Failed to join giveaway!", style: { background: "#ef4444", color: "#fff" } }).showToast();
+                }
+            },
+
+            async openParticipants(giveawayId) {
+                this.activeGiveawayId = giveawayId;
+                const g = this.giveaways.find(item => item.id === giveawayId);
+                document.getElementById('modal-giveaway-title').textContent = `Participants: ${g.title}`;
+                
+                const container = document.getElementById('participants-list-content');
+                container.innerHTML = `<div style="text-align:center;padding:30px;"><div class="spinner"></div><p>Loading participants...</p></div>`;
+                this.toggleParticipantsModal();
+
+                try {
+                    const querySnapshot = await getDocs(collection(db, "giveaways", giveawayId, "participants"));
+                    this.currentParticipants = [];
+                    querySnapshot.forEach((docSnap) => {
+                        this.currentParticipants.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+
+                    if (this.currentParticipants.length === 0) {
+                        container.innerHTML = `<p style="text-align:center;color:var(--color-text-muted);padding:20px;">No participants yet.</p>`;
+                        return;
+                    }
+
+                    let listHtml = `
+                        <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+                            <span>Total Participants: <strong>${this.currentParticipants.length}</strong></span>
+                            <button class="btn btn-success btn-sm" onclick="app.drawRandomWinner()">🎲 Random Draw Winner</button>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                    `;
+
+                    this.currentParticipants.forEach(p => {
+                        let isWinner = g.winner && g.winner.code === p.code;
+                        listHtml += `
+                            <div style="background:var(--bg-secondary);padding:12px 16px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border:1px solid ${isWinner ? 'var(--color-primary)' : 'var(--color-border)'};">
+                                <div>
+                                    <strong>${p.name}</strong> <br>
+                                    <small style="color:var(--color-primary)">Code: ${p.code}</small>
+                                </div>
+                                <button class="btn ${isWinner ? 'btn-success' : 'btn-secondary'} btn-sm" onclick="app.setWinner('${p.name}', '${p.code}')">
+                                    ${isWinner ? 'Current Winner' : 'Pick as Winner'}
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    listHtml += `</div>`;
+                    container.innerHTML = listHtml;
+                } catch (e) {
+                    console.error(e);
+                    container.innerHTML = `<p style="color:var(--color-danger);text-align:center;">Failed to load participants.</p>`;
+                }
+            },
+
+            toggleParticipantsModal() {
+                const modal = document.getElementById('participants-modal');
+                modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+            },
+
+            async setWinner(name, code) {
+                const g = this.giveaways.find(item => item.id === this.activeGiveawayId);
+                if (!g) return;
+
+                try {
+                    g.winner = { name, code };
+                    g.status = 'ended'; // Automatically close the event
+
+                    await setDoc(doc(db, "giveaways", g.id), {
+                        title: g.title,
+                        description: g.description || '',
+                        accountDetails: g.accountDetails || '',
+                        visibility: g.visibility,
+                        status: 'ended',
+                        winner: { name, code },
+                        created: g.created
+                    });
+
+                    Toastify({ text: `Winner selected: ${name} (${code})!`, background: "#22c55e", color: "#000" }).showToast();
+                    this.toggleParticipantsModal();
+                    this.loadGiveaways();
+                } catch (e) {
+                    console.error(e);
+                    Toastify({ text: "Failed to set winner!", style: { background: "#ef4444", color: "#fff" } }).showToast();
+                }
+            },
+
+            drawRandomWinner() {
+                if (this.currentParticipants.length === 0) return;
+                const randomIndex = Math.floor(Math.random() * this.currentParticipants.length);
+                const winner = this.currentParticipants[randomIndex];
+                this.setWinner(winner.name, winner.code);
             },
 
             switchAdminTab(tab) {
@@ -501,12 +646,11 @@
                 } else if (tab === 'create') {
                     document.getElementById('admin-tab-list').style.display = 'none';
                     document.getElementById('admin-tab-editor').style.display = 'block';
-                    document.getElementById('editor-heading').textContent = 'Buat Giveaway Baru';
+                    document.getElementById('editor-heading').textContent = 'Create New Giveaway';
                     document.getElementById('edit-id').value = '';
                     document.getElementById('edit-title').value = '';
                     document.getElementById('edit-desc').value = '';
                     document.getElementById('edit-account').value = '';
-                    document.getElementById('edit-winner').value = '';
                     document.getElementById('edit-visibility').value = 'PUBLIC';
                     document.getElementById('edit-status').value = 'active';
                 }
@@ -518,27 +662,30 @@
                 const title = document.getElementById('edit-title').value.trim();
                 const desc = document.getElementById('edit-desc').value.trim();
                 const account = document.getElementById('edit-account').value.trim();
-                const winner = document.getElementById('edit-winner').value.trim();
                 const visibility = document.getElementById('edit-visibility').value;
                 const status = document.getElementById('edit-status').value;
 
-                if (!title) { Swal.fire('Error', 'Judul giveaway wajib diisi!', 'error'); return; }
+                if (!title) { Swal.fire('Error', 'Giveaway title is required!', 'error'); return; }
 
                 try {
+                    const existingG = this.giveaways.find(item => item.id === id);
+                    const winnerData = existingG ? (existingG.winner || null) : null;
+
                     await setDoc(doc(db, "giveaways", id), { 
                         title, 
                         description: desc, 
                         accountDetails: account, 
-                        winner, 
+                        winner: winnerData,
                         visibility, 
                         status, 
-                        created: new Date().toISOString() 
+                        created: existingG ? existingG.created : new Date().toISOString() 
                     });
-                    Toastify({ text: "Berhasil disimpan!", background: "#eab308", color: "#000" }).showToast();
+                    Toastify({ text: "Saved successfully!", background: "#eab308", color: "#000" }).showToast();
                     this.switchAdminTab('list');
                     this.loadGiveaways();
                 } catch (e) {
-                    Toastify({ text: "Gagal menyimpan!", style: { background: "#ef4444", color: "#fff" } }).showToast();
+                    console.error(e);
+                    Toastify({ text: "Failed to save!", style: { background: "#ef4444", color: "#fff" } }).showToast();
                 }
             },
 
@@ -551,17 +698,16 @@
                 document.getElementById('edit-title').value = g.title;
                 document.getElementById('edit-desc').value = g.description || '';
                 document.getElementById('edit-account').value = g.accountDetails || '';
-                document.getElementById('edit-winner').value = g.winner || '';
                 document.getElementById('edit-visibility').value = g.visibility;
                 document.getElementById('edit-status').value = g.status;
             },
 
             async deleteGiveaway(id) {
-                Swal.fire({ title: 'Hapus giveaway ini?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus' }).then(async (res) => {
+                Swal.fire({ title: 'Delete this giveaway?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, Delete' }).then(async (res) => {
                     if (res.isConfirmed) {
                         await deleteDoc(doc(db, "giveaways", id));
                         this.loadGiveaways();
-                        Toastify({ text: "Berhasil dihapus" }).showToast();
+                        Toastify({ text: "Successfully deleted" }).showToast();
                     }
                 });
             },
@@ -585,7 +731,7 @@
                 let filtered = this.giveaways.filter(g => g.title.toLowerCase().includes(query));
                 listEl.innerHTML = filtered.map(g => `
                     <div class="giveaway-card" onclick="app.viewDetail('${g.id}')">
-                        <div style="display:flex;justify-content:space-between;align-items:center;mab-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                             <span class="giveaway-title">${g.title}</span>
                             <span class="badge badge-${g.status}">${g.status.toUpperCase()}</span>
                         </div>
